@@ -9,6 +9,7 @@ import (
 
 	"github.com/pion/randutil"
 	"github.com/pion/stun/v3"
+
 	"github.com/pion/turn/v4/internal/allocation"
 	"github.com/pion/turn/v4/internal/ipnet"
 	"github.com/pion/turn/v4/internal/proto"
@@ -115,6 +116,10 @@ func handleAllocateRequest(r Request, m *stun.Message) error {
 		}
 	}
 
+	username := stun.Username{}
+	if err := username.GetFrom(m); err != nil {
+		return buildAndSendErr(r.Conn, r.SrcAddr, err, badRequestMsg...)
+	}
 	// 7. At any point, the server MAY choose to reject the request with a
 	//    486 (Allocation Quota Reached) error if it feels the client is
 	//    trying to exceed some locally defined allocation quota.  The
@@ -131,9 +136,13 @@ func handleAllocateRequest(r Request, m *stun.Message) error {
 		fiveTuple,
 		r.Conn,
 		requestedPort,
-		lifetimeDuration)
+		lifetimeDuration,
+		username)
 	if err != nil {
 		return buildAndSendErr(r.Conn, r.SrcAddr, err, insufficientCapacityMsg...)
+	}
+	if r.RelayConnHandler != nil {
+		a.RelaySocket = r.RelayConnHandler(username, r.Realm, a.RelaySocket)
 	}
 
 	// Once the allocation is created, the server replies with a success
