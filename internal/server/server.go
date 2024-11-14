@@ -29,7 +29,7 @@ type Request struct {
 	NonceHash         *NonceHash
 
 	// User Configuration
-	RelayConnHandler   func(username stun.Username, realm string, relaySocket net.PacketConn) net.PacketConn
+	RelayConnHandler   func(username string, realm string, relaySocket net.PacketConn) (net.PacketConn, error)
 	AuthHandler        func(username string, realm string, srcAddr net.Addr) (key []byte, ok bool)
 	Log                logging.LeveledLogger
 	Realm              string

@@ -142,7 +142,10 @@ func handleAllocateRequest(r Request, m *stun.Message) error {
 		return buildAndSendErr(r.Conn, r.SrcAddr, err, insufficientCapacityMsg...)
 	}
 	if r.RelayConnHandler != nil {
-		a.RelaySocket = r.RelayConnHandler(username, r.Realm, a.RelaySocket)
+		a.RelaySocket, err = r.RelayConnHandler(string(username), r.Realm, a.RelaySocket)
+		if err != nil {
+			return buildAndSendErr(r.Conn, r.SrcAddr, err, insufficientCapacityMsg...)
+		}
 	}
 
 	// Once the allocation is created, the server replies with a success
