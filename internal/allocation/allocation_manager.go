@@ -4,12 +4,14 @@
 package allocation
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/pion/logging"
+	"github.com/pion/stun/v3"
 )
 
 // ManagerConfig a bag of config params for Manager.
@@ -86,7 +88,7 @@ func (m *Manager) Close() error {
 }
 
 // CreateAllocation creates a new allocation and starts relaying
-func (m *Manager) CreateAllocation(fiveTuple *FiveTuple, turnSocket net.PacketConn, requestedPort int, lifetime time.Duration) (*Allocation, error) {
+func (m *Manager) CreateAllocation(fiveTuple *FiveTuple, turnSocket net.PacketConn, requestedPort int, lifetime time.Duration, username stun.Username) (*Allocation, error) {
 	switch {
 	case fiveTuple == nil:
 		return nil, errNilFiveTuple
@@ -103,7 +105,7 @@ func (m *Manager) CreateAllocation(fiveTuple *FiveTuple, turnSocket net.PacketCo
 	if a := m.GetAllocation(fiveTuple); a != nil {
 		return nil, fmt.Errorf("%w: %v", errDupeFiveTuple, fiveTuple)
 	}
-	a := NewAllocation(turnSocket, fiveTuple, m.log)
+	a := NewAllocation(turnSocket, fiveTuple, m.log, username)
 
 	conn, relayAddr, err := m.allocatePacketConn("udp4", requestedPort)
 	if err != nil {
@@ -141,6 +143,9 @@ func (m *Manager) DeleteAllocation(fiveTuple *FiveTuple) {
 	}
 
 	if err := allocation.Close(); err != nil {
+		if errors.Is(err, net.ErrClosed) {
+			return
+		}
 		m.log.Errorf("Failed to close allocation: %v", err)
 	}
 }

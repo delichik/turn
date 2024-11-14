@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pion/logging"
+
 	"github.com/pion/turn/v4/internal/allocation"
 	"github.com/pion/turn/v4/internal/proto"
 	"github.com/pion/turn/v4/internal/server"
@@ -24,6 +25,7 @@ const (
 type Server struct {
 	log                logging.LeveledLogger
 	authHandler        AuthHandler
+	relayConnHandler   RelayConnHandler
 	realm              string
 	channelBindTimeout time.Duration
 	nonceHash          *server.NonceHash
@@ -59,6 +61,7 @@ func NewServer(config ServerConfig) (*Server, error) {
 
 	s := &Server{
 		log:                loggerFactory.NewLogger("turn"),
+		relayConnHandler:   config.RelayConnHandler,
 		authHandler:        config.AuthHandler,
 		realm:              config.Realm,
 		channelBindTimeout: config.ChannelBindTimeout,
@@ -220,6 +223,7 @@ func (s *Server) readLoop(p net.PacketConn, allocationManager *allocation.Manage
 			SrcAddr:            addr,
 			Buff:               buf[:n],
 			Log:                s.log,
+			RelayConnHandler:   s.relayConnHandler,
 			AuthHandler:        s.authHandler,
 			Realm:              s.realm,
 			AllocationManager:  allocationManager,
